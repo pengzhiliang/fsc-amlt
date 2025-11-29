@@ -388,7 +388,6 @@ class JobLogScreen(Screen):
         Binding("escape", "go_back", "Back"),
         Binding("q", "go_back", "Back"),
         Binding("r", "refresh_logs", "Refresh"),
-        Binding("d", "download_logs", "Download"),
     ]
     
     def __init__(self, exp_name: str, job: JobData):
@@ -593,12 +592,7 @@ class JobLogScreen(Screen):
         self.app.pop_screen()
     
     def action_refresh_logs(self):
-        """Refresh from local file."""
-        self.query_one("#job-log", Log).clear()
-        self._load_logs()
-    
-    def action_download_logs(self):
-        """Force re-download logs (gets latest retry)."""
+        """Refresh logs - download fresh and display."""
         self.query_one("#job-log", Log).clear()
         self._download_and_display()
 
