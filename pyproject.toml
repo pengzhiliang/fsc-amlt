@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fsc-amlt"
+version = "0.2.0"
+description = "FSC - Terminal-based AMLT Job Manager for Azure ML"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Claude Opus 4.5"},
+    {name = "Zhiliang Peng", email = "none"}
+]
+maintainers = [
+    {name = "Zhiliang Peng", email = "none"}
+]
+keywords = [
+    "amlt", 
+    "azure", 
+    "azure-ml", 
+    "job-manager", 
+    "terminal", 
+    "cli", 
+    "tui",
+    "singularity",
+    "ml-ops",
+    "experiment-tracking"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Monitoring",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "rich>=13.0.0",
+    "textual>=0.40.0",
+    "click>=8.0.0",
+    "peewee>=3.16.0",
+    "pyperclip>=1.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "build>=1.0.0",
+    "twine>=4.0.0",
+]
+
+[project.scripts]
+fsc = "fsc.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/pzzhang/fsc-amlt"
+Documentation = "https://github.com/pzzhang/fsc-amlt#readme"
+Repository = "https://github.com/pzzhang/fsc-amlt"
+Issues = "https://github.com/pzzhang/fsc-amlt/issues"
+Changelog = "https://github.com/pzzhang/fsc-amlt/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fsc*"]
+
+[tool.setuptools.package-data]
+fsc = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
