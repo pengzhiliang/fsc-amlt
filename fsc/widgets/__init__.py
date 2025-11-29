@@ -22,9 +22,10 @@ class ExperimentListItem(ListItem):
     # Column widths for alignment
     COL_NAME = 22
     COL_STATUS = 16
-    COL_FLAGS = 8
     COL_CLUSTER = 22
-    COL_TIME = 10
+    COL_FLAGS = 8
+    COL_TIME = 8
+    COL_TAG = 12
     
     def __init__(self, exp: ExpData, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -71,10 +72,13 @@ class ExperimentListItem(ListItem):
         # Format flags
         flags = exp.flags[:self.COL_FLAGS-2] + ".." if len(exp.flags) > self.COL_FLAGS else exp.flags
         
+        # Format tag (truncate if too long)
+        tag = exp.tag[:self.COL_TAG-2] + ".." if len(exp.tag) > self.COL_TAG else exp.tag
+        
         # Pad status with spaces to align next column
         status_padding = " " * (self.COL_STATUS - status_width)
         
-        # Format with fixed columns: name | status | cluster | flags | modified
+        # Format with fixed columns: name | status | cluster | flags | modified | tag
         content = (
             f" [bold]{name:<{self.COL_NAME}}[/] "
             f"{status_str}{status_padding} "
@@ -82,6 +86,10 @@ class ExperimentListItem(ListItem):
             f"[cyan]{flags:<{self.COL_FLAGS}}[/] "
             f"[yellow]{exp.modified:>{self.COL_TIME}}[/]"
         )
+        
+        # Add tag if present
+        if tag:
+            content += f"  [bold magenta]#{tag}[/]"
         
         yield Static(content)
 
@@ -201,3 +209,41 @@ class ConfirmDialog(ModalScreen[bool]):
     
     def action_cancel(self):
         self.dismiss(False)
+
+
+class TagInputDialog(ModalScreen[str]):
+    """Dialog for entering a tag for an experiment."""
+    
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel"),
+    ]
+    
+    def __init__(self, exp_name: str, current_tag: str = ""):
+        super().__init__()
+        self.exp_name = exp_name
+        self.current_tag = current_tag
+    
+    def compose(self) -> ComposeResult:
+        with Container(id="dialog-container"):
+            yield Static(
+                f"[bold cyan]🏷️  Set Tag[/]\n\n"
+                f"Experiment: [bold]{self.exp_name}[/]\n\n"
+                f"[dim]Enter a short tag to identify this experiment.[/]\n"
+                f"[dim]Leave empty to remove tag.[/]",
+                id="dialog-message"
+            )
+            yield Input(
+                placeholder="e.g., baseline, v2, test",
+                value=self.current_tag,
+                id="tag-input"
+            )
+    
+    def on_mount(self):
+        self.query_one("#tag-input", Input).focus()
+    
+    def on_input_submitted(self, event):
+        """Handle tag input submission."""
+        self.dismiss(event.value.strip())
+    
+    def action_cancel(self):
+        self.dismiss(None)

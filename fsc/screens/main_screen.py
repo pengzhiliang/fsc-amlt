@@ -16,9 +16,9 @@ from textual.widgets import Header, Footer, Static, ListView, TabbedContent, Tab
 from .base import TabbedListScreen
 from .detail_screen import ExperimentDetailScreen
 from ..data import ExpData, StatusChange
-from ..cache import get_cache, TERMINAL_STATES
+from ..cache import get_cache, get_tag_cache, TERMINAL_STATES
 from ..utils import STATUS_DISPLAY, parse_time_ago
-from ..widgets import ExperimentListItem, NotificationBar, ConfirmDialog
+from ..widgets import ExperimentListItem, NotificationBar, ConfirmDialog, TagInputDialog
 from ..amlt_parser import get_experiments, get_experiment_status, AmltParser, ExperimentInfo
 
 # Try to import pyperclip for clipboard support
@@ -45,6 +45,7 @@ class MainScreen(TabbedListScreen):
         Binding("enter", "select_experiment", "Open", priority=True),
         Binding("r", "refresh", "Refresh"),
         Binding("y", "copy_name", "Copy"),
+        Binding("t", "set_tag", "Tag"),
         Binding("ctrl+k", "cancel_experiment", "Cancel"),
         Binding("n", "clear_notifications", "Clear"),
         Binding("q", "quit", "Quit"),
@@ -56,6 +57,7 @@ class MainScreen(TabbedListScreen):
         self.all_experiments: List[ExpData] = []
         self.grouped: Dict[str, List[ExpData]] = {}
         self.last_statuses: Dict[str, str] = {}
+        self.tag_cache = get_tag_cache()
         self._tab_order = ["tab-queued", "tab-running", "tab-passed", "tab-failed", "tab-killed"]
     
     def _get_data_for_status(self, status: str) -> List[ExpData]:
@@ -182,6 +184,8 @@ class MainScreen(TabbedListScreen):
         self.all_experiments = []
         for info in exp_infos:
             exp = ExpData.from_info(info)
+            # Load tag from cache
+            exp.tag = self.tag_cache.get(exp.name)
             self.all_experiments.append(exp)
             api_exp_names.add(exp.name)
             
@@ -201,6 +205,8 @@ class MainScreen(TabbedListScreen):
             for cached in cached_exps:
                 if cached.name not in api_exp_names:
                     exp = ExpData.from_cached(cached)
+                    # Load tag from cache
+                    exp.tag = self.tag_cache.get(exp.name)
                     self.all_experiments.append(exp)
         
         self.grouped = {
@@ -315,3 +321,39 @@ class MainScreen(TabbedListScreen):
     
     def action_clear_notifications(self):
         self.query_one("#notifications", NotificationBar).clear()
+    
+    def action_set_tag(self):
+        """Set a tag for the selected experiment."""
+        list_view, experiments = self._get_current_list()
+        if list_view.index is not None and list_view.index < len(experiments):
+            exp = experiments[list_view.index]
+            current_tag = self.tag_cache.get(exp.name)
+            self.app.push_screen(
+                TagInputDialog(exp.name, current_tag),
+                callback=lambda tag: self._apply_tag(exp, tag) if tag is not None else None
+            )
+    
+    def _apply_tag(self, exp: ExpData, tag: str):
+        """Apply tag to experiment and refresh display."""
+        self.tag_cache.set(exp.name, tag)
+        exp.tag = tag
+        # Refresh the current list to show updated tag
+        self._refresh_current_list()
+        if tag:
+            self.notify(f"🏷️ Tagged '{exp.name}' as #{tag}", timeout=2)
+        else:
+            self.notify(f"🏷️ Removed tag from '{exp.name}'", timeout=2)
+    
+    def _refresh_current_list(self):
+        """Refresh the current list view to reflect changes."""
+        for status, list_id in [
+            ('running', 'list-running'),
+            ('queued', 'list-queued'),
+            ('pass', 'list-passed'),
+            ('fail', 'list-failed'),
+            ('killed', 'list-killed'),
+        ]:
+            list_view = self.query_one(f"#{list_id}", ListView)
+            list_view.clear()
+            for exp in self.grouped.get(status, []):
+                list_view.append(ExperimentListItem(exp))

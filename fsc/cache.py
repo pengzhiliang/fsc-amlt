@@ -434,9 +434,64 @@ class DetailCache:
             self.cache_file.unlink()
 
 
+# Tag cache file
+TAG_CACHE_FILE = CACHE_DIR / "tag_cache.json"
+
+
+class TagCache:
+    """Cache for user-defined experiment tags/notes."""
+    
+    def __init__(self):
+        self.cache_file = TAG_CACHE_FILE
+        self._tags: Dict[str, str] = {}
+        self._load()
+    
+    def _load(self):
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, 'r') as f:
+                    self._tags = json.load(f)
+            except:
+                self._tags = {}
+    
+    def _save(self):
+        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.cache_file, 'w') as f:
+            json.dump(self._tags, f, indent=2)
+    
+    def get(self, name: str) -> str:
+        """Get tag for an experiment."""
+        return self._tags.get(name, "")
+    
+    def set(self, name: str, tag: str):
+        """Set tag for an experiment."""
+        if tag:
+            self._tags[name] = tag
+        elif name in self._tags:
+            del self._tags[name]
+        self._save()
+    
+    def remove(self, name: str):
+        """Remove tag for an experiment."""
+        if name in self._tags:
+            del self._tags[name]
+            self._save()
+    
+    def get_all(self) -> Dict[str, str]:
+        """Get all tags."""
+        return dict(self._tags)
+    
+    def clear(self):
+        """Clear all tags."""
+        self._tags = {}
+        if self.cache_file.exists():
+            self.cache_file.unlink()
+
+
 # Global instances
 _config_cache: Optional[ConfigCache] = None
 _detail_cache: Optional[DetailCache] = None
+_tag_cache: Optional[TagCache] = None
 
 
 def get_config_cache() -> ConfigCache:
@@ -451,3 +506,10 @@ def get_detail_cache() -> DetailCache:
     if _detail_cache is None:
         _detail_cache = DetailCache()
     return _detail_cache
+
+
+def get_tag_cache() -> TagCache:
+    global _tag_cache
+    if _tag_cache is None:
+        _tag_cache = TagCache()
+    return _tag_cache

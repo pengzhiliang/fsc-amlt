@@ -35,6 +35,9 @@ class ExpData:
     # Whether this came from cache
     from_cache: bool = False
     
+    # User-defined tag
+    tag: str = ""
+    
     @classmethod
     def from_info(cls, info) -> 'ExpData':
         """Create from ExperimentInfo."""
