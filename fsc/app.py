@@ -484,7 +484,7 @@ class JobLogScreen(Screen):
             
             # Show last 200 lines
             display_lines = lines[-200:] if len(lines) > 200 else lines
-            status.update(f"  [dim]{log_path}[/]\n  [dim]Showing last {len(display_lines)} of {len(lines)} lines | d=Download fresh r=Refresh[/]")
+            status.update(f"  [dim]{log_path}[/]\n  [dim]Showing last {len(display_lines)} of {len(lines)} lines[/]")
             
             for line in display_lines:
                 log_widget.write_line(line.rstrip())
@@ -977,9 +977,6 @@ class MainScreen(Screen):
                 active_exps.extend(self.grouped[status])
         
         if not active_exps:
-            self.app.call_from_thread(
-                lambda: self.notify("✓ No active experiments to check", timeout=2)
-            )
             return
         
         # Limit to avoid too many API calls
@@ -989,13 +986,6 @@ class MainScreen(Screen):
         corrections = []  # List of (exp_name, old_status, new_status, detail)
         
         for i, exp in enumerate(active_exps):
-            # Update progress
-            self.app.call_from_thread(
-                lambda i=i, name=exp.name: self.notify(
-                    f"🔍 Checking [{i+1}/{total}]: {name}...", timeout=3
-                )
-            )
-            
             detail = get_experiment_status(exp.name)
             if not detail or not detail.jobs:
                 continue
@@ -1019,20 +1009,13 @@ class MainScreen(Screen):
                     if exp.status != new_status:
                         corrections.append((exp.name, exp.status, new_status, detail))
         
-        # Apply corrections or show completion message
+        # Apply corrections if any
         if corrections:
             self.app.call_from_thread(self._apply_status_corrections, corrections)
-        else:
-            self.app.call_from_thread(
-                lambda: self.notify(f"✓ Checked {total} experiments, all status correct", timeout=3)
-            )
     
     def _apply_status_corrections(self, corrections):
         """Apply status corrections and update display."""
         notifications = self.query_one("#notifications", NotificationBar)
-        
-        # Show summary notification
-        self.notify(f"🔧 Found {len(corrections)} status change(s)", timeout=3)
         
         for exp_name, old_status, new_status, detail in corrections:
             # Update cache (force_add only accepts terminal state fields)
@@ -1175,7 +1158,6 @@ class MainScreen(Screen):
         # Also trigger status correction if on queued or running tab
         tabs = self.query_one("#tabs", TabbedContent)
         if tabs.active in ("tab-queued", "tab-running"):
-            self.notify("🔄 Checking active experiments status...", timeout=2)
             self._correct_active_statuses()
     
     def action_select_experiment(self):
