@@ -422,6 +422,12 @@ class DetailCache:
     def has(self, name: str) -> bool:
         return name in self._cache
     
+    def remove(self, name: str):
+        """Remove an experiment from cache."""
+        if name in self._cache:
+            del self._cache[name]
+            self._save()
+    
     def clear(self):
         self._cache = {}
         if self.cache_file.exists():
